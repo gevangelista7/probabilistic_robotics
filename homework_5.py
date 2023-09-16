@@ -36,33 +36,35 @@ test_area_map = Map(landmarks=landmarks, obstacles=obstacles, area_limit=area_li
 camera_fov = pi / 2     # 90 degree centrado em theta
 camera_range = 7        # meters para reconhecimento adequado
 percep_sigmas = (0.1, 0.01, 0.01)
+hr = -pi / 2  # comando de rot horario
+ah = pi / 2  # comando de rot anti-horario
 
-algo_name = 'EKF_SLAM_kc'
-# algo_name = 'EKF_SLAM'
 
+### CONTROL PANEL ###
+
+# algo_name = 'EKF_SLAM_kc'
+algo_name = 'EKF_SLAM'
+xt0 = np.array([[2], [1], [pi / 2]])
+
+ut_seq = np.array(
+    ([0] + 12 * [1] + [0] + [1]  + 23 * [1] + [1]  + 8 * [1] + 1 * [1]  + 19 * [1] + 10 * [0] + 1 * [0]  + 3 * [1] + 10 * [0],
+     [0] + 12 * [0] + [0] + [hr] + 23 * [0] + [hr] + 8 * [0] + 1 * [hr] + 19 * [0] + 10 * [0] + 1 * [hr] + 3 * [0] + 10 * [0]))
+    # subida                # direita         # descida            # esquerda                       # subida
+
+### CONTROL PANEL ###
 if __name__ == "__main__":
 
-    xt0 = np.array([[2], [1], [pi / 2]])
-    hr = -pi/2          # comando de rot horario
-    ah =  pi/2          # comando de rot anti-horario
-
-    ut_seq = np.array(([0] + 12*[1] + [0] + 24*[1]      +  [1] + 8*[1] + 1*[1]  + 19*[1] + 10*[0] +1*[0]  + 3*[1] + 10*[0],
-                       [0] + 12*[0] + [0] + [hr]+23*[0] + [hr] + 8*[0] + 1*[hr] + 19*[0] + 10*[0] +1*[hr] + 3*[0] + 10*[0]))
-                            # subida        # direita     # descida        # esquerda        # subida
 
     N_ldmk = len(test_area_map.landmarks)
     if algo_name == 'EKF_SLAM_kc':
         N = N_ldmk
         Sigma_t = np.diag([0]*3 + [1e8]*3*N)
         mu_t = np.vstack((xt0, np.zeros(3 * N)[:, None]))
-
     elif algo_name == 'EKF_SLAM':
         N = 0
         Sigma_t = np.diag([0]*3)
         mu_t = xt0
-
-    else:
-        raise 'algo_name err'
+    else: raise 'algo_name err'
 
     xti = mu_t[:3]
     seen_cits = []
@@ -80,7 +82,6 @@ if __name__ == "__main__":
         citi, fiti = test_area_map.get_visual_landmark(xti, camera_fov=camera_fov,
                                                        camera_range=camera_range,
                                                        sigma_cam=percep_sigmas)
-
 
         # algorithm execution
         if algo_name == 'EKF_SLAM_kc':
