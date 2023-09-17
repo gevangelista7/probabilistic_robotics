@@ -41,8 +41,8 @@ camera_range = 7        # meters for proper recognize
 
 # == CONTROL PANEL == #
 
-# algo_name = 'EKF_SLAM_kc'
-algo_name = 'EKF_SLAM'
+algo_name = 'FastSLAM_1'
+# algo_name = 'FastSLAM_2'
 xt0 = np.array([[2], [1], [pi / 2]])
 
 ut_seq = np.array(
