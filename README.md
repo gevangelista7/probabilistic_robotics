@@ -6,8 +6,10 @@ The proposed algorithms are from the following chapters:
 - Chapter 5: Motion Models
 - Chapter 6: Perception Models
 - Chapter 8: Monte Carlo and Grid Localization
+
   ![Alt Text](movies/augMCL_movie.gif)
 - Chapter 10: SLAM
+
   ![Alt Text](movies/EKF_SLAM_movie.gif)
 - Chapter 13: FastSLAM
 
