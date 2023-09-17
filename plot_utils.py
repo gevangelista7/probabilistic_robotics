@@ -78,6 +78,25 @@ def get_mahalanobis_level_pat(mean, S, sigma_levels=None, colors=None):
                     lw=1, edgecolor=lp, fc='None',
                     label=r'${} \sigma$'.format(n_sigma))
 
+      # major_axis_endpoints = [
+      #     [mean[0] - np.cos(np.radians(angular_coeff)) * n_sigma * sigma_x,
+      #      mean[1] - np.sin(np.radians(angular_coeff)) * n_sigma * sigma_x],
+      #     [mean[0] + np.cos(np.radians(angular_coeff)) * n_sigma * sigma_x,
+      #      mean[1] + np.sin(np.radians(angular_coeff)) * n_sigma * sigma_x]
+      # ]
+      # minor_axis_endpoints = [
+      #     [mean[0] + np.sin(np.radians(angular_coeff)) * n_sigma * sigma_y,
+      #      mean[1] - np.cos(np.radians(angular_coeff)) * n_sigma * sigma_y],
+      #     [mean[0] - np.sin(np.radians(angular_coeff)) * n_sigma * sigma_y,
+      #      mean[1] + np.cos(np.radians(angular_coeff)) * n_sigma * sigma_y]
+      # ]
+      #
+      # # Create lines for major and minor axes
+      # major_axis_line = plt.Line2D(*zip(*major_axis_endpoints), lw=1, color=lp)
+      # minor_axis_line = plt.Line2D(*zip(*minor_axis_endpoints), lw=1, color=lp)
+
+      # curves.extend([pat, major_axis_line, minor_axis_line])
+
       curves.append(pat)
 
     return curves
@@ -184,7 +203,7 @@ def plot_robots_in_map(xt, reference_map, extra_patches=None, grid_res=None, tit
 #
 #     plot_robots_in_map(xt=mu[:3], reference_map=area_map, title=title, extra_patches=pats, save=save, figname=figname)
 
-def plot_scene_with_confidence(xt, mu, Sigma, seen_cits, area_map, camera_on=False,
+def plot_scene_with_confidence(xt, mu, Sigma, area_map, camera_on=False,
                                camera_fov=None, camera_range=None, title=None, save=True, figname=None):
     pats = []
     pos = True
@@ -197,8 +216,8 @@ def plot_scene_with_confidence(xt, mu, Sigma, seen_cits, area_map, camera_on=Fal
             pats += get_mahalanobis_level_pat((mean_x, mean_y), S, colors=['r'])
             pos = False
             continue
-        if round(mu[idx+2].item()) in seen_cits:
-            pats += get_mahalanobis_level_pat((mean_x, mean_y), S, colors=['b'])
+        # if round(mu[idx+2].item()) in seen_cits:
+        pats += get_mahalanobis_level_pat((mean_x, mean_y), S, colors=['b'])
 
     if camera_on:
         pats += get_camera_fov_pat(xt, camera_range=camera_range, camera_fov=camera_fov)

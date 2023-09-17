@@ -4,8 +4,7 @@ from utils import smaller_arc_between_angles, expand_sigma
 
 
 def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
-            R=None, deltat=1,
-            sigmas_percep=(.1, .1, .1)):
+            R=None, deltat=1, sigmas_percep=(.1, .1, .1)):
 
     ### verify
     assert z_t.shape[0] == 3
@@ -28,8 +27,10 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
         R = np.eye(3)/10
 
     ### Motion update
-    F_x = np.hstack((np.eye(3), np.zeros((3, 3 * Nt))))
+    # line 3
+    # F_x = np.hstack((np.eye(3), np.zeros((3, 3 * Nt))))
 
+    # line 4
     mov0 = - r * sin(mu_tp_theta) + r * sin(mu_tp_theta + w * deltat)
     mov1 =   r * cos(mu_tp_theta) - r * cos(mu_tp_theta + w * deltat)
     mov2 = w * deltat
@@ -50,16 +51,26 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
     mubar_t[1] = mubar_ty
     mubar_t[2] = mubar_ttheta
 
-    gt = np.array([[0, 0, -mov1],
-                   [0, 0,  mov0],
-                   [0, 0,  0]])
+    # line 4
+    # gt = np.array([[0, 0, -mov1],
+    #                [0, 0,  mov0],
+    #                [0, 0,  0]])
 
-    G_t = np.eye(3*Nt + 3) + F_x.T @ gt @ F_x
+    # G_t = np.eye(3 * N + 3) + F_x.T @ gt @ F_x
 
-    Sigmabar_t = G_t @ Sigma_tp @ G_t.T + F_x.T @ R @ F_x
+    G_t = np.eye(3*Nt + 3)
+    G_t[0, 2] = -mov1
+    G_t[1, 2] = mov0
 
+    # line 5
+    # Sigmabar_t = G_t @ Sigma_tp @ G_t.T + F_x.T @ R @ F_x
+    R_ext = np.zeros((3*Nt + 3, 3*Nt + 3))
+    R_ext[0, 0] = R[0, 0]
+    R_ext[1, 1] = R[1, 1]
+    R_ext[2, 2] = R[2, 2]
+    Sigmabar_t = G_t @ Sigma_tp @ G_t.T + R_ext
 
-    ### perception update
+    ### perception model update
     Q_t = np.diag(sigmas_percep)
 
     for i, z in enumerate(z_t.T):
@@ -81,7 +92,7 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
         pi_lkhd = np.zeros(Nt+1)
         Haux_pos_cache = []
         Haux_map_cache = []
-        psi_cache = []
+        psi_inv_cache = []
         zhat_cache = []
 
         # get the extended representation
@@ -116,16 +127,14 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
                                  [    -deltay,      deltax, 0],
                                  [          0,           0, q]]) / q
 
-            Hkt = np.zeros((3, 3 * (Nt + 1) + 3))
-            Hkt[:, :3] = Haux_pos
-            Hkt[:, 3+k:6+k] = Haux_map
+            Hkt = np.hstack((Haux_pos, np.zeros((3, 3 * (k+1) - 3)), Haux_map, np.zeros((3, 3 * ((Nt+1) - (k+1))))))
 
             # lines 16 and 17
-            psi_k = Hkt @ Sigmabar_ext @ Hkt.T + Q_t
-            pi_lkhd[k] = (z - zhat).T @ psi_k @ (z - zhat)
+            psi_k_inv = np.linalg.inv(Hkt @ Sigmabar_ext @ Hkt.T + Q_t)
+            pi_lkhd[k] = (z - zhat).T @ psi_k_inv @ (z - zhat)
 
             # put in cache
-            psi_cache.append(psi_k)
+            psi_inv_cache.append(psi_k_inv)
             Haux_pos_cache.append(Haux_pos)
             Haux_map_cache.append(Haux_map)
             zhat_cache.append(zhat)
@@ -136,9 +145,6 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
         # line 20
         j = np.argmin(pi_lkhd)
 
-
-        # print(f'Início iter: Nt={Nt}, i={i}, k={k}, j={j} Sigmbar_t.shape={Sigmabar_t.shape},  pi={pi_lkhd}')
-        # print(f'Nt={Nt}, j+1={j+1} , max(Nt, j+1)={max(Nt, j+1)}, Condition={(j+1) == Nt}')
         # line 21
         N0 = Nt
         Nt = max(Nt, j+1)
@@ -147,34 +153,23 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
             Sigmabar_t = Sigmabar_ext
             mubar_t = mubar_ext
 
-
         # get elements from cache
         Haux_pos = Haux_pos_cache[j]
         Haux_map = Haux_map_cache[j]
-        psi_j = psi_cache[j]
+        psi_inv_j = psi_inv_cache[j]
         zhatj = zhat_cache[j]
 
         # prepare the Hjt
-        Hjt = np.zeros((3, 3 * Nt + 3))
-        Hjt[:, :3] = Haux_pos
-        Hjt[:, 3 + j:6 + j] = Haux_map
+        Hjt = np.hstack((Haux_pos, np.zeros((3, 3 * (j + 1) - 3)), Haux_map, np.zeros((3, 3 * (Nt - (j + 1))))))
 
         # line 22
-        print(f"Nt={Nt}, Sigmabar_t: {Sigmabar_t.shape}. Hjt.T: {Hjt.T.shape}, np.linalg.inv(psi_j): {psi_j.shape}")
-        Kit = Sigmabar_t @ Hjt.T @ np.linalg.inv(psi_j)
+        Kit = Sigmabar_t @ Hjt.T @ psi_inv_j
 
         # line 23
         mubar_t = mubar_t + Kit @ (z - zhatj)
 
         # line 24
-        # print(f"fit:{z}")
-        # print('Sigmabar_t após da atualização', Sigmabar_t[-3:,-3:])
         Sigmabar_t = (np.eye(3 + 3*Nt) - Kit @ Hjt) @ Sigmabar_t
-        # print('Sigmabar_t antes da atualização', Sigmabar_t[-3:, -3:])
-        # print(f"Kit @ Hit: {(Kit @ Hjt)[-3:,-3:]}")
-        # # print(psi_j)
-        # # print(f'Final iter: Nt={Nt}, i={i}, k={k}, j={j} Sigmbar_t.shape={Sigmabar_t.shape},  pi={pi_lkhd}')
-        # print("===============================")
 
     # lines 26 and 27
     mu_t, Sigma_t = mubar_t, Sigmabar_t
