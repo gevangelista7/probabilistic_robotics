@@ -4,13 +4,17 @@ of the assessment of the UFRJ/COPPE course COE841 - Autonomous Systems, for my m
 
 The proposed algorithms are from the following chapters:
 - Chapter 5: Motion Models
+- <img src="images/motion_model_example.png" alt="Alt Text" width="200">
+
 - Chapter 6: Perception Models
+<img src="images/perception_model_example.png" alt="Alt Text" width="200">    
+  
 - Chapter 8: Monte Carlo and Grid Localization
+<img src="movies/augMCL_movie.gif" alt="Alt Text" width="300">
 
-  ![Alt Text](movies/augMCL_movie.gif)
 - Chapter 10: SLAM
+<img src="movies/EKF_SLAM_movie.gif" alt="Alt Text" width="300">
 
-  ![Alt Text](movies/EKF_SLAM_movie.gif)
 - Chapter 13: FastSLAM
 
 
