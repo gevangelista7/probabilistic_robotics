@@ -11,6 +11,7 @@ The proposed algorithms are from the following chapters:
 
 <img src="images/perception_model_example.png" alt="Alt Text" width="200">    
   
+  
 - Chapter 8: Monte Carlo and Grid Localization
 
 <img src="movies/augMCL_movie.gif" alt="Alt Text" width="300">
