@@ -146,6 +146,14 @@ class PGrid(HGrid):
         plt.show()
 
 
+def init_SLAM_population(X):
+    population = []
+    for x in X.T:
+        population.append(SLAMParticle(x))
+
+    return population
+
+
 class SLAMParticle:
     def __init__(self, x0):
         self.x = x0
@@ -353,3 +361,11 @@ def expand_sigma(sigma):
     sigma[-1, -1] = 1e8
 
     return sigma
+
+def get_pop_poses(Y):
+    X = np.zeros([[], [], []])
+    for particle in Y:
+        assert type(particle) == SLAMParticle
+        X = np.hstack(X, Y.x)
+
+    return X

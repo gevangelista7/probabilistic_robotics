@@ -204,7 +204,7 @@ def plot_robots_in_map(xt, reference_map, extra_patches=None, grid_res=None, tit
 #     plot_robots_in_map(xt=mu[:3], reference_map=area_map, title=title, extra_patches=pats, save=save, figname=figname)
 
 def plot_scene_with_confidence(xt, mu, Sigma, area_map, camera_on=False,
-                               camera_fov=None, camera_range=None, title=None, save=True, figname=None):
+                               camera_fov=None, camera_range=None, title=None, save=False, figname=None):
     pats = []
     pos = True
 
@@ -228,6 +228,41 @@ def plot_scene_with_confidence(xt, mu, Sigma, area_map, camera_on=False,
     plot_robots_in_map(xt=mu[:3], reference_map=area_map, title=title, extra_patches=pats, save=save, figname=figname)
 
 
+def get_particle_pats(mu, Sigma):
+    pats = []
+    pos = True
+
+    for idx in range(0, len(mu), 3):
+        mean_x = mu[idx]
+        mean_y = mu[idx + 1]
+        S = Sigma[idx:idx + 2, idx:idx + 2]
+        if pos:
+            pats += get_mahalanobis_level_pat((mean_x, mean_y), S, colors=['r'])
+            pos = False
+            continue
+
+        pats += get_mahalanobis_level_pat((mean_x, mean_y), S, colors=['b'])
+
+    return pats
+
+
+def plot_FastSLAM_scene(xt, Y, area_map, camera_fov, camera_range, title, save=False, figname=None):
+    pats = []
+    mu_mean = np.array([[], [], []])
+    for i, particle in enumerate(Y):
+        mu, Sigma, _ = particle.access_feature(i)
+        mu_mean = np.hstack((mu_mean, mu))
+        pats += get_particle_pats(mu, Sigma)
+
+    mu_mean = mu_mean.mean(axis=1)
+
+    pats += get_camera_fov_pat(xt, camera_range=camera_range, camera_fov=camera_fov)
+
+    # real_robot
+    pats += get_robot_pat(xt.T[0], color='red')
+
+    plot_robots_in_map(xt=mu_mean[:3], reference_map=area_map, title=title, extra_patches=pats,
+                       save=save, figname=figname)
 
 def make_movie(dir, out_filename, fps=4):
     plot_files = sorted(os.listdir(dir))

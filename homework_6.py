@@ -1,11 +1,12 @@
 import numpy as np
 from numpy import pi
-from utils import Map, clear_directory
+from utils import Map, clear_directory, get_random_samples, init_SLAM_population
 from motion_model import sample_model_velocity
 from plot_utils import plot_scene_with_confidence, make_movie
 
-from EKF_SLAM import EKF_SLAM
-from EKF_SLAM_known_correspondences import EKF_SLAM_known_correspondences
+from FastSLAM_1 import FastSLAM_1
+# from FastSLAM_2 import FastSLAM_2
+
 
 np.random.seed(7)
 
@@ -50,38 +51,24 @@ ut_seq = np.array(
      [0] + 12 * [0] + [0] + [hr] + 23 * [0] + [hr] + 8 * [0] + 1 * [hr] + 19 * [0] + 10 * [0] + 1 * [hr] + 3 * [0] + 10 * [0]))
     # subida                # direita         # descida            # esquerda                       # subida
 
+n_particles = 10
 percep_sigmas = (0.3, 0.01, 0.1)
-R = np.eye(3)/100
+motion_alphas = np.array((0.1, 0.1, 0.1, 0.1, 0.1, 0.1))
+p0 = 0.1
 
 # good values for visualization:
 # percep_sigmas = (0.3, 0.01, 0.1)
 # R = np.eye(3)/100
-alpha_ML = 1
 
 # == CONTROL PANEL == #
 if __name__ == "__main__":
 
-    N_ldmk = len(test_area_map.landmarks)
-    if algo_name == 'EKF_SLAM_kc':
-        N = N_ldmk
-        Sigma_t = np.diag([0]*3 + [1e8]*3*N)
-        mu_t = np.vstack((xt0, np.zeros(3 * N)[:, None]))
-    elif algo_name == 'EKF_SLAM':
-        N = 0
-        Sigma_t = np.diag([0]*3)
-        mu_t = xt0
-    else: raise 'algo_name err'
-
-    xti = mu_t[:3]
-    seen_cits = []
+    X = get_random_samples(n_samples=n_particles, area_map=test_area_map)
+    Y = init_SLAM_population(X)
+    xti = xt0
 
     images_dir = f'./movies/{algo_name}_movie/'
     clear_directory(images_dir)
-
-    plot_scene_with_confidence(xt=xti, mu=mu_t, Sigma=Sigma_t, area_map=test_area_map,
-                               camera_on=True, camera_fov=camera_fov, camera_range=camera_range,
-                               title=f"Condição inicial. Existem {N_ldmk} landmarks...", save=True,
-                               figname=images_dir + 'iter_{0:03d}'.format(0))
 
     for i, ut in enumerate(ut_seq.T):
         xti = sample_model_velocity(u_t=ut, x_tp=xti, alphas=np.zeros(6), deltat=1)
@@ -90,24 +77,10 @@ if __name__ == "__main__":
                                                        sigma_cam=percep_sigmas)
 
         # algorithm execution
-        if algo_name == 'EKF_SLAM_kc':
-            mu_t, Sigma_t = EKF_SLAM_known_correspondences(mu_tp=mu_t, Sigma_tp=Sigma_t,
-                                                           u_t=ut, z_t=fiti, c_t=citi,
-                                                           N=N, seen_cits=seen_cits,
-                                                           sigmas_percep=percep_sigmas, R=R)
-
-            if len(citi) > 0:
-                ldmks_string = f'Ldmks {citi} detected!'
-            else:
-                ldmks_string = 'No Ldmks detected...'
-            title = f"Uncertainty update iter={i}. " + ldmks_string
-
-        elif algo_name == 'EKF_SLAM':
-            mu_t, Sigma_t, N = EKF_SLAM(mu_tp=mu_t, Sigma_tp=Sigma_t,
-                                        u_t=ut, z_t=fiti, Nt=N,
-                                        alpha_ML=alpha_ML,
-                                        R=R, deltat=1,
-                                        sigmas_percep=percep_sigmas)
+        if algo_name == 'FastSLAM_1':
+            Y = FastSLAM_1(Y=Y, u_t=ut, z_t=fiti,
+                           p0=p0, alphas_motion=motion_alphas,
+                           camera_range=camera_range, sigmas_percep=percep_sigmas)
 
             if len(citi) > 0:
                 ldmks_string = f'{len(citi)} ldmks detected!'
@@ -116,9 +89,6 @@ if __name__ == "__main__":
             title = f"Uncertainty update i={i}, N={N}, {ldmks_string}"
         else: raise 'algo_name err'
 
-        for c in citi:
-            if c not in seen_cits:
-                seen_cits.append(c)
 
         plot_scene_with_confidence(xt=xti, mu=mu_t, Sigma=Sigma_t, area_map=test_area_map,
                                    camera_on=True, camera_fov=camera_fov, camera_range=camera_range,
