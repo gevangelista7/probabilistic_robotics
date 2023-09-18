@@ -351,14 +351,13 @@ def clear_directory(directory_path):
         print(f"Error clearing directory '{directory_path}': {str(e)}")
 
 
-def expand_sigma(sigma):
+def expand_sigma(sigma, sigma_ext=np.diag(3*[1e8])):
     dim = sigma.shape[0]
 
-    sigma = np.vstack((sigma, np.zeros((3, dim))))
-    sigma = np.hstack((sigma, np.zeros((dim+3, 3))))
-    sigma[-3, -3] = 1e8
-    sigma[-2, -2] = 1e8
-    sigma[-1, -1] = 1e8
+    sigma = np.block([
+        [sigma,              np.zeros((dim, 3))],
+        [np.zeros((3, dim)), sigma_ext]
+    ])
 
     return sigma
 
