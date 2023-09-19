@@ -2,7 +2,7 @@ import numpy as np
 from numpy import pi
 from utils import Map, clear_directory, get_random_samples, init_SLAM_population
 from motion_model import sample_model_velocity
-from plot_utils import plot_scene_with_confidence, make_movie
+from plot_utils import plot_FastSLAM_scene, make_movie
 
 from FastSLAM_1 import FastSLAM_1
 # from FastSLAM_2 import FastSLAM_2
@@ -14,7 +14,6 @@ obstacles = [[(0, 0), (30, 0), (30, 0.01), (0, .01)],  # just walls
              [(0, 0), (0, 16), (.01, 16), (.01, 0)],
              [(0, 15.99), (0, 15.99), (30, 15.99), (30, 16)],
              [(29.99, 16), (30, 16), (30, 0), (29.99, 0)]]
-
 landmarks = {1: (0, 16), 2: (2, 16), 3: (12, 16), 4: (15, 16), 5: (17, 16), 6: (30, 16),    # ordered by y decreasing
              7: (0, 14), 8: (30, 14),
              9: (4, 12), 10: (6, 12), 11: (8, 12), 12: (10, 12), 13: (12, 12),              # next line also with y=12
@@ -28,7 +27,6 @@ landmarks = {1: (0, 16), 2: (2, 16), 3: (12, 16), 4: (15, 16), 5: (17, 16), 6: (
              26: (2, 2), 27: (30, 2),
              29: (30, 1),
              28: (4, 0), 30: (30, 0), 31: (10, 0)}
-
 area_limit = [(-1, -1), (-1, 17), (31, 17), (31, -1)]       # some extra space to better show the ellipses
 
 test_area_map = Map(landmarks=landmarks, obstacles=obstacles, area_limit=area_limit)
@@ -63,8 +61,8 @@ p0 = 0.1
 # == CONTROL PANEL == #
 if __name__ == "__main__":
 
-    X = get_random_samples(n_samples=n_particles, area_map=test_area_map)
-    Y = init_SLAM_population(X)
+    X = np.tile(xt0, n_particles)
+    Y = init_SLAM_population(X[:3])
     xti = xt0
 
     images_dir = f'./movies/{algo_name}_movie/'
@@ -80,19 +78,18 @@ if __name__ == "__main__":
         if algo_name == 'FastSLAM_1':
             Y = FastSLAM_1(Y=Y, u_t=ut, z_t=fiti,
                            p0=p0, alphas_motion=motion_alphas,
-                           camera_range=camera_range, sigmas_percep=percep_sigmas)
+                           camera_range=camera_range, sigmas_percep=percep_sigmas[:2])
 
             if len(citi) > 0:
                 ldmks_string = f'{len(citi)} ldmks detected!'
             else:
                 ldmks_string = 'No Ldmks detected...'
-            title = f"Uncertainty update i={i}, N={N}, {ldmks_string}"
+            title = f"Uncertainty update i={i}, N={0}, {ldmks_string}"
         else: raise 'algo_name err'
 
-
-        plot_scene_with_confidence(xt=xti, mu=mu_t, Sigma=Sigma_t, area_map=test_area_map,
-                                   camera_on=True, camera_fov=camera_fov, camera_range=camera_range,
-                                   title=title, save=True, figname=images_dir + 'iter_{0:03d}'.format(i))
+        plot_FastSLAM_scene(xt=xti, Y=Y, area_map=test_area_map, camera_fov=camera_fov,
+                            camera_range=camera_range, title=title, save=True,
+                            figname=images_dir + 'iter_{0:03d}'.format(i))
 
         print(f'Fim da iteração {i} de {len(ut_seq.T)-1}')
 

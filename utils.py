@@ -1,13 +1,12 @@
-from copy import deepcopy
 import numpy as np
-from numpy import sin, cos, sqrt, pi, arctan2, sign
-from scipy.stats import norm
+from numpy import sin, cos, sqrt, pi, arctan2
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon, Circle, Wedge, ConnectionPatch
+from matplotlib.patches import Polygon, Circle
 import shapely.geometry as shp
 import seaborn as sns
 import os
 import shutil
+
 
 class Map:
     def __init__(self, obstacles, landmarks, area_limit):
@@ -146,14 +145,6 @@ class PGrid(HGrid):
         plt.show()
 
 
-def init_SLAM_population(X):
-    population = []
-    for x in X.T:
-        population.append(SLAMParticle(x))
-
-    return population
-
-
 class SLAMParticle:
     def __init__(self, x0):
         self.x = x0
@@ -172,101 +163,54 @@ class SLAMParticle:
         self.Sigmas_features.append(Sigma)
         self.counter_features.append(1)
 
-        self.Q_cache.append(None)
-        self.zhat_cache.append(None)
-
-    def reset_cache(self):
-        self.Q_cache = [None] * self.N
-        self.zhat_cache = [None] * self.N
-
     def update_pos(self, x):
         self.x = x
-        self.reset_cache()
 
     def update_map(self, j, mu, Sigma):
         self.mu_features[j] = mu
         self.Sigmas_features[j] = Sigma
 
-        self.Q_cache[j] = None
-        self.zhat_cache[j] = None
-
     def access_feature(self, j):
-        mu = self.mu_features[j][:, None]
+        mu = self.mu_features[j]
         Sigma = self.Sigmas_features[j]
         counter = self.counter_features[j]
 
         return mu, Sigma, counter
 
-    def calc_deltas(self, j):
-        muk, _, _ = self.access_feature(j)
-        loc = 3 + j * 3
-        deltax = muk[loc] - self.x[0]
-        deltay = muk[loc+1] - self.x[1]
-
-        delta = np.array([[deltax],
-                          [deltay]])
-
-        q = (delta.T @ delta).item()
-
-        return deltax, deltay, q
-
     def measurement_prediction(self, j):
-        if self.zhat_cache is not None:
-            return self.zhat_cache[j]
-
         muk, _, _ = self.access_feature(j)
-        loc = 3 + j * 3
-        deltax, deltay, q = self.calc_deltas(j)
+        deltax, deltay, q = calc_deltas(self.x[:2], muk)
         zhat = np.array([[q ** .5],
-                         [smaller_arc_between_angles(self.x[2], arctan2(deltay, deltax))],
-                         [muk[loc+2]]])
-
-        self.zhat_cache[j] = zhat
+                         [smaller_arc_between_angles(self.x[2], arctan2(deltay, deltax)).item()]])
 
         return zhat
 
-    def get_jacobian(self, j):
-        deltax, deltay, q = self.calc_deltas(j)
-        sq = sqrt(q)
-        Haux_pos = np.array([[-sq * deltax, -sq * deltay, 0],
-                             [deltay, -deltax, -q],
-                             [0, 0, 0]]) / q
-        Haux_map = np.array([[sq * deltax, sq * deltay, 0],
-                             [-deltay, deltax, 0],
-                             [0, 0, q]]) / q
-        Hjt = np.hstack((Haux_pos, np.zeros((3, 3 * (j + 1) - 3)), Haux_map, np.zeros((3, 3 * ((self.N + 1) - (j + 1))))))
-        return Hjt
-
-    def get_measurement_covariance(self, j, Qt):
-        if self.Q_cache[j] is not None:
-            return self.Q_cache[j]
-
-        _, Sigmaj, _ = self.access_feature(j)
-        Hjt = self.get_jacobian(j)
-
-        Qj = Hjt @ Sigmaj @ Hjt.T + Qt
-
-        return Qj
-
-    def measure_inverse(self, z):
-        # deltax, deltay, q = self.calc_deltas(j)
+    def inverse_measure(self, z):
         dist = z[0]
         delta_theta = z[1]
 
         x_hat = self.x[0] + dist * cos(self.x[2] + delta_theta)
         y_hat = self.x[1] + dist * sin(self.x[2] + delta_theta)
 
-        return x_hat, y_hat, z[2]
+        return x_hat.item(), y_hat.item()
 
     def delete_feature(self, j):
-        # TODO
+        self.mu_features.pop(j)
+        self.Sigmas_features.pop(j)
+        self.counter_features.pop(j)
+        self.N -= 1
         pass
-
-    def decrease_counter(self, j):
-        self.counter_features[j] -= 1
 
 
 # fundamentals and problem geometry
+def init_SLAM_population(X):
+    population = []
+    for x in X.T:
+        population.append(SLAMParticle(x[:, None]))
+
+    return population
+
+
 def normalize_angle(angle):
     while angle > pi:
         angle -= 2 * pi
@@ -361,6 +305,7 @@ def expand_sigma(sigma, sigma_ext=np.diag(3*[1e8])):
 
     return sigma
 
+
 def get_pop_poses(Y):
     X = np.zeros([[], [], []])
     for particle in Y:
@@ -368,3 +313,41 @@ def get_pop_poses(Y):
         X = np.hstack(X, Y.x)
 
     return X
+
+
+def calc_deltas(x, mu):
+    deltax = mu[0] - x[0]
+    deltay = mu[1] - x[1]
+
+    delta = mu - x
+
+    q = (delta.T @ delta).item()
+
+    return deltax, deltay, q
+
+
+def calc_map_jacobian(x, mu):
+    deltax, deltay, q = calc_deltas(x, mu)
+
+    sq = sqrt(q)
+    Haux_map = np.array([[sq * deltax, sq * deltay],
+                         [-deltay, deltax]]) / q
+
+    return Haux_map
+
+
+def calc_pos_jacobian(x, mu):
+    deltax, deltay, q = calc_deltas(x, mu)
+
+    sq = sqrt(q)
+    Haux_pos = np.array([[-sq * deltax, -sq * deltay],
+                         [deltay, -deltax]]) / q
+
+    return Haux_pos
+
+
+def calc_aux_jacobian(x, mu):
+    Haux_pos = calc_pos_jacobian(x, mu)
+    Haux_map = calc_map_jacobian(x, mu)
+
+    return Haux_pos, Haux_map
