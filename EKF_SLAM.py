@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2
-from utils import smaller_arc_between_angles, expand_sigma
+from utils import relative_bearing, expand_sigma
 
 
 def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
@@ -115,7 +115,7 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
             # lines 12 and 13
             q = (delta.T @ delta).item()
             zhat = np.array([[q**.5],
-                             [smaller_arc_between_angles(mubar_ttheta, arctan2(deltay, deltax))],
+                             [relative_bearing(mubar_ttheta, arctan2(deltay, deltax))],
                              [mubar_ks]])
 
             # lines 14 and 15

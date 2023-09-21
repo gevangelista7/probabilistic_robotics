@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 from numpy import sin, cos, sqrt, pi, arctan2
 import matplotlib.pyplot as plt
@@ -59,8 +61,8 @@ class Map:
         for lmk_id, lmk_xy in self.landmarks.items():
             mx, my = lmk_xy
             dist = sqrt((mx - x) ** 2 + (my - y) ** 2).item()
-            deltatheta = smaller_arc_between_angles(observer_angle=theta,
-                                                    target_angle=arctan2(my - y, mx - x)).item()
+            deltatheta = relative_bearing(observer_angle=theta,
+                                          target_angle=arctan2(my - y, mx - x)).item()
 
             if dist < camera_range and abs(deltatheta) < camera_fov / 2:
                 cit.append(lmk_id)
@@ -163,9 +165,6 @@ class SLAMParticle:
         self.Sigmas_features.append(Sigma)
         self.counter_features.append(1)
 
-    def update_pos(self, x):
-        self.x = x
-
     def update_map(self, j, mu, Sigma):
         self.mu_features[j] = mu
         self.Sigmas_features[j] = Sigma
@@ -177,15 +176,19 @@ class SLAMParticle:
 
         return mu, Sigma, counter
 
-    def measurement_prediction(self, j):
+    def pos(self):
+        return deepcopy(self.x[:2, 0])
+
+    def compute_expected_measurement(self, j):
         muk, _, _ = self.access_feature(j)
         deltax, deltay, q = calc_deltas(self.x[:2], muk)
         zhat = np.array([[q ** .5],
-                         [smaller_arc_between_angles(self.x[2], arctan2(deltay, deltax)).item()]])
+                         [relative_bearing(observer_angle=self.x[2],
+                                           target_angle=arctan2(deltay, deltax)).item()]])
 
         return zhat
 
-    def inverse_measure(self, z):
+    def compute_expected_landmark_pos(self, z):
         dist = z[0]
         delta_theta = z[1]
 
@@ -199,7 +202,6 @@ class SLAMParticle:
         self.Sigmas_features.pop(j)
         self.counter_features.pop(j)
         self.N -= 1
-        pass
 
 
 # fundamentals and problem geometry
@@ -219,7 +221,7 @@ def normalize_angle(angle):
     return angle
 
 
-def smaller_arc_between_angles(observer_angle, target_angle):
+def relative_bearing(observer_angle, target_angle):
     observer_angle = normalize_angle(observer_angle)
     target_angle = normalize_angle(target_angle)
 
@@ -316,12 +318,10 @@ def get_pop_poses(Y):
 
 
 def calc_deltas(x, mu):
-    deltax = mu[0] - x[0]
-    deltay = mu[1] - x[1]
+    deltax = deepcopy(mu[0] - x[0])
+    deltay = deepcopy(mu[1] - x[1])
 
-    delta = mu - x
-
-    q = (delta.T @ delta).item()
+    q = (deltax ** 2 + deltay ** 2).item()
 
     return deltax, deltay, q
 
@@ -330,8 +330,8 @@ def calc_map_jacobian(x, mu):
     deltax, deltay, q = calc_deltas(x, mu)
 
     sq = sqrt(q)
-    Haux_map = np.array([[sq * deltax, sq * deltay],
-                         [-deltay, deltax]]) / q
+    Haux_map = np.array([[deltax/sq, deltay/sq],
+                         [-deltay/q, deltax/q]])
 
     return Haux_map
 

@@ -47,7 +47,7 @@ def plot_MCL_scene(Xtp, Xt, xt_real, i, camera_range, camera_fov, area_map):
                        title=f'localization and resampling, i={i}')
 
 
-def get_mahalanobis_level_pat(mean, S, sigma_levels=None, colors=None):
+def get_mahalanobis_level_pat(mean, S, sigma_levels=None, colors=None, zorder=0):
 
     if sigma_levels is None:
         sigma_levels = [1]
@@ -80,7 +80,7 @@ def get_mahalanobis_level_pat(mean, S, sigma_levels=None, colors=None):
                     width=2*n_sigma*sigma_x, height=2*n_sigma*sigma_y,
                     angle=angular_coeff,
                     lw=1, edgecolor=lp, fc='None',
-                    label=r'${} \sigma$'.format(n_sigma))
+                    label=r'${} \sigma$'.format(n_sigma), zorder=zorder)
 
       # major_axis_endpoints = [
       #     [mean[0] - np.cos(np.radians(angular_coeff)) * n_sigma * sigma_x,
@@ -223,17 +223,20 @@ def get_particle_pats(mu, Sigma):
     return pats
 
 
-def plot_FastSLAM_scene(xt, Y, area_map, camera_fov, camera_range, title, save=False, figname=None):
+def plot_FastSLAM_scene(xt, Y, w, area_map, camera_fov, camera_range, title, save=False, figname=None):
     pats = []
     for k, particle in enumerate(Y):
-        for i in range(particle.N):
-            mu, Sigma, _ = particle.access_feature(i)
-            pats += get_particle_pats(mu, Sigma)
+        pats += get_robot_pat(particle.x.squeeze(), color='red', radius=0.2)
+        # for i in range(particle.N):
+        #     mu, Sigma, _ = particle.access_feature(i)
+        #     pats += get_mahalanobis_level_pat(mean=(mu[0], mu[1]), S=Sigma, colors=['blue'], zorder=3)
+
+    best_particle = Y[np.argmax(w)]
+    for i in range(best_particle.N):
+        mu, Sigma, _ = best_particle.access_feature(i)
+        pats += get_mahalanobis_level_pat(mean=(mu[0], mu[1]), S=Sigma, colors=['blue'], zorder=3)
 
     pats += get_camera_fov_pat(xt, camera_range=camera_range, camera_fov=camera_fov)
-
-    # real_robot
-    pats += get_robot_pat(xt.T[0], color='red')
 
     plot_robots_in_map(xt=xt, reference_map=area_map, title=title, extra_patches=pats,
                        save=save, figname=figname)

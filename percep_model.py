@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Circle, Wedge, ConnectionPatch
 import shapely.geometry as shp
 import seaborn as sns
-from utils import prob, normalize_angle, smaller_arc_between_angles, Map
+from utils import prob, normalize_angle, relative_bearing, Map
 
 
 def landmark_model_known_correspondence(fit, cit, xt, m, sigmas):
@@ -40,8 +40,8 @@ def landmark_model_known_correspondence(fit, cit, xt, m, sigmas):
 
     phihat = np.zeros_like(theta)
     for i, theta_i in enumerate(theta):
-        phihat[i] = smaller_arc_between_angles(observer_angle=theta_i,
-                                               target_angle=arctan2(mjy - y[i], mjx - x[i]))
+        phihat[i] = relative_bearing(observer_angle=theta_i,
+                                     target_angle=arctan2(mjy - y[i], mjx - x[i]))
 
     # phihat = arctan2(mjy - y, mjx - x) - theta
 

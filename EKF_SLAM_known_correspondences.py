@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2
-from utils import smaller_arc_between_angles
+from utils import relative_bearing
 
 
 def EKF_SLAM_known_correspondences(mu_tp, Sigma_tp, u_t, z_t, c_t,
@@ -105,7 +105,7 @@ def EKF_SLAM_known_correspondences(mu_tp, Sigma_tp, u_t, z_t, c_t,
 
         # line 14
         zhat = np.array([[q**.5],
-                         [smaller_arc_between_angles(mubar_ttheta, arctan2(deltay, deltax))],
+                         [relative_bearing(mubar_ttheta, arctan2(deltay, deltax))],
                          [mubar_js]])
 
         # line 16

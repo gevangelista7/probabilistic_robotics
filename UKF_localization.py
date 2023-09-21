@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2
-from utils import smaller_arc_between_angles, expand_sigma
+from utils import relative_bearing, expand_sigma
 from motion_model import sample_model_velocity
 
 def UFK_localization(mu_tp, Sigma_tp, u_t, z_t, Nt, m, sigmas_percep,

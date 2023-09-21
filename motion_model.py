@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon, Circle, Wedge, ConnectionPatch
 import shapely.geometry as shp
 import seaborn as sns
-from utils import prob, normalize_angle, smaller_arc_between_angles, Map
+from utils import prob, normalize_angle, relative_bearing, Map
 
 def sample_model_velocity(u_t, x_tp, alphas, deltat=1):
     """
@@ -79,8 +79,8 @@ def motion_model_velocity(x_t, u_t, x_tp, alphas, deltat):
 
     # deltatheta = np.arctan2(yl - ystar, xl - xstar) - np.arctan2(y - ystar, x - xstar)
 
-    deltatheta = smaller_arc_between_angles(observer_angle=np.arctan2(yl - ystar, xl - xstar),
-                                            target_angle=np.arctan2(y - ystar, x - xstar))
+    deltatheta = relative_bearing(observer_angle=np.arctan2(yl - ystar, xl - xstar),
+                                  target_angle=np.arctan2(y - ystar, x - xstar))
 
     what = deltatheta / deltat
     vhat = what * rstar
