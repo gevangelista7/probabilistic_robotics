@@ -57,7 +57,6 @@ def EKF_SLAM(mu_tp, Sigma_tp, u_t, z_t, Nt, alpha_ML,
     #                [0, 0,  0]])
 
     # G_t = np.eye(3 * N + 3) + F_x.T @ gt @ F_x
-
     G_t = np.eye(3*Nt + 3)
     G_t[0, 2] = -mov1
     G_t[1, 2] = mov0

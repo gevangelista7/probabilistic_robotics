@@ -3,10 +3,10 @@ from operator import itemgetter
 import numpy as np
 from numpy import sin, cos, sqrt, arctan2, pi
 from motion_model import sample_model_velocity
-from utils import SLAMParticle, stochastic_universal_sampler, calc_map_jacobian
+from utils import SLAMParticle, stochastic_universal_sampler, calc_map_jacobian, relative_bearing, calc_pos_jacobian
 
 
-def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
+def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                deltat=1, sigmas_percep=(.1, .1, .1)):
 
     ### verify
@@ -23,6 +23,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
         particle.x = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=alphas_motion, deltat=deltat)
 
         for z_idx, z in enumerate(z_t.T):                       # iter over readings
+            s = z[2]
             z = z[:2][:, None]                                  # ignore s and make vertical again
 
             Qinv_cache = []
@@ -48,6 +49,15 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
                 # line 9
                 w_features[j] = (2 * pi * np.linalg.det(Qj))**-.5 * np.exp(-.5 * (z - zhat).T @ Qj_inv @ (z - zhat))
 
+                # print('zhat', zhat)
+                # print('z', z)
+                # print('pos', particle.pos())
+                # print('muj', muj.squeeze())
+                # print('s', s)
+                # print('w', w_features[j])
+                #
+                # print(f'fim da associação, p = {k}, j = {j}')
+
             # line 11
             w_features[particle.N] = p0
 
@@ -71,8 +81,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
                     # line 18
                     Hj = calc_map_jacobian(particle.pos(), mu.squeeze())
                     Hj_inv = np.linalg.inv(Hj)
-                    Sigma = Hj_inv.T @ Q_percep @ Hj_inv          ## from book
-                    # Sigma = Hj_inv @ Q_percep @ Hj_inv.T            ## from another code...
+                    Sigma = Hj_inv.T @ Q_percep @ Hj_inv
 
                     particle.insert_new_feature(mu, Sigma)
 
@@ -83,9 +92,9 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
                     Hj = calc_map_jacobian(particle.pos(), mu.squeeze())
 
                     # line 21
-                    Qj_inv = Qinv_cache[j]
-                    # Qj = Hj @ Sigma @ Hj.T + Q_percep
-                    # Qj_inv = np.linalg.inv(Qj)
+                    # Qj_inv = Qinv_cache[j]
+                    Qj = Hj @ Sigma @ Hj.T + Q_percep
+                    Qj_inv = np.linalg.inv(Qj)
 
                     K = Sigma @ Hj.T @ Qj_inv
 
@@ -103,8 +112,11 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
                     # check if into the perception range
                     # line 28
                     dist = np.linalg.norm(particle.mu_features[j] - particle.x[:2])
+                    rel_bearing = relative_bearing(observer_angle=particle.x[2],
+                                                   target_angle=arctan2(particle.mu_features[j][0] - particle.x[0],
+                                                                        particle.mu_features[j][1] - particle.x[1]))
 
-                    if dist < camera_range:
+                    if dist < camera_range and abs(rel_bearing) < camera_fov:
                         # line 31
                         particle.counter_features[j] -= 1
 
@@ -112,9 +124,9 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range,
                         if particle.counter_features[j] < 0:
                             delete_list.append(j)
 
-            delete_list.reverse()
-            for j in delete_list:
-                particle.delete_feature(j)
+            # delete_list.reverse()
+            # for j in delete_list:
+            #     particle.delete_feature(j)
 
     # particles likelihoods considering all readings
     w_particles = w_particles.prod(axis=0)

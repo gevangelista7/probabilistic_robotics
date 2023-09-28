@@ -49,10 +49,10 @@ ut_seq = np.array(
      [0] + 12 * [0] + [0] + [hr] + 23 * [0] + [hr] + 8 * [0] + 1 * [hr] + 19 * [0] + 10 * [0] + 1 * [hr] + 3 * [0] + 10 * [0]))
     # subida                # direita         # descida            # esquerda                       # subida
 
-n_particles = 100
-percep_sigmas = (0.3, 0.3, 0.1)
-motion_alphas = np.array((0.01, 0.001, 0.01, 0.001, 0.01, 0.001))
-p0 = 1e-1
+n_particles = 10
+percep_sigmas = (0.3, 0.2, 0.1)
+motion_alphas = np.array((5, 1, 0.01, 0.01, 0.01, 0.01))*1e-3
+p0 = 5e-1
 
 # good values for visualization:
 # percep_sigmas = (0.3, 0.01, 0.1)
@@ -80,13 +80,16 @@ if __name__ == "__main__":
 
             Y, w = FastSLAM_1(Y=Y, u_t=ut, z_t=fiti,
                               p0=p0, alphas_motion=motion_alphas, deltat=1,
-                              camera_range=camera_range, sigmas_percep=percep_sigmas[:2])
+                              camera_range=camera_range, camera_fov=camera_fov,
+                              sigmas_percep=percep_sigmas[:2])
 
             if len(citi) > 0:
                 ldmks_string = f'{len(citi)} ldmks detected!'
             else:
                 ldmks_string = 'No Ldmks detected...'
-            title = f"Uncertainty update i={i}, N={0}, {ldmks_string}"
+
+            N_mean = sum([p.N for p in Y])/len(Y)
+            title = f"Uncertainty update i={i}, N={N_mean}, {ldmks_string}"
         else: raise 'algo_name err'
 
         plot_FastSLAM_scene(xt=xti, Y=Y, w=w, area_map=test_area_map, camera_fov=camera_fov,

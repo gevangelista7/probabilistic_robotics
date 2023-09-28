@@ -87,8 +87,6 @@ def EKF_SLAM_known_correspondences(mu_tp, Sigma_tp, u_t, z_t, c_t,
             mubar_t[loc] = mubar_jx
             mubar_t[loc+1] = mubar_jy
             mubar_t[loc+2] = mubar_js
-            #
-            # seen_cits.append(cit)
         else:
             mubar_jx = mubar_t[loc].item()
             mubar_jy = mubar_t[loc + 1].item()
@@ -118,7 +116,6 @@ def EKF_SLAM_known_correspondences(mu_tp, Sigma_tp, u_t, z_t, c_t,
                              [    -deltay,      deltax, 0],
                              [          0,           0, q]]) / q
 
-        # to do: cut the zeros multiply
         Hit = np.hstack((Haux_pos, np.zeros((3, 3 * cit - 3)), Haux_map, np.zeros((3, 3 * (N - cit)))))
 
         # line 17
