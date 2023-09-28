@@ -20,7 +20,7 @@ The proposed algorithms are from the following chapters:
 
 <img src="movies/EKF_SLAM_movie.gif" alt="Alt Text" width="300">
 
-- Chapter 13: FastSLAM
-
-
+- Chapter 13: 
+  - FastSLAM 1
+<img src="movies/FastSLAM_1_movie.gif" alt="Alt Text" width="300">
 
