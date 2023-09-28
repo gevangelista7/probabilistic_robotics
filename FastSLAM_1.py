@@ -58,6 +58,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 #
                 # print(f'fim da associação, p = {k}, j = {j}')
 
+
             # line 11
             w_features[particle.N] = p0
 
