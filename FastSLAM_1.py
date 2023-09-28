@@ -125,9 +125,9 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                         if particle.counter_features[j] < 0:
                             delete_list.append(j)
 
-            # delete_list.reverse()
-            # for j in delete_list:
-            #     particle.delete_feature(j)
+            delete_list.reverse()
+            for j in delete_list:
+                particle.delete_feature(j)
 
     # particles likelihoods considering all readings
     w_particles = w_particles.prod(axis=0)

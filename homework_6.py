@@ -50,7 +50,7 @@ ut_seq = np.array(
     # subida                # direita         # descida            # esquerda                       # subida
 
 n_particles = 10
-percep_sigmas = (0.3, 0.2, 0.1)
+percep_sigmas = (0.3, 0.1, 0.1)
 motion_alphas = np.array((5, 1, 0.01, 0.01, 0.01, 0.01))*1e-3
 p0 = 5e-1
 
