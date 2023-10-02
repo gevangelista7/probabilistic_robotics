@@ -13,7 +13,7 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
     Q_t = np.diag(sigmas_percep)
 
     if R is None:
-        R = np.eye(3)/10
+        R = np.eye(2)/10
 
     R_inv = np.linalg.inv(R)
 
@@ -23,15 +23,19 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
     for k, particle in enumerate(Y):  # iter over particles
         assert type(particle) == SLAMParticle
 
+        x_rand = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=alphas_motion, deltat=deltat)
+        xk_t = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=np.zeros(6), deltat=deltat)
+        if len(z_t.T) == 0:
+            particle.x = x_rand
+
         ### line 4
         for z_idx, z in enumerate(z_t.T):                       # iter over readings
-            s = z[2]
-            z = z[:2][:, None]                                  # ignore s and make vertical again
+            z = z[:, None]                                  # ignore s and make vertical again
 
             w_features = np.zeros(particle.N + 1)
 
             # Caches
-            xt_feat = np.zeros(particle.N)
+            xt_feat = []
             Hmj_cache = []
             Hxj_cache = []
             Qj_cache = []
@@ -41,14 +45,14 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 muj, Sigmaj, _ = particle.access_feature(j)
 
                 ### line 5
-                xhatj = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=np.zeros(6), deltat=deltat)
+                xhatj = xk_t
 
                 ### line 6
                 zbarj = particle.compute_expected_measurement(j)
 
                 ### lines 7 and 8
-                Hxj = calc_pos_jacobian(x=xhatj, mu=muj)
-                Hmj = calc_map_jacobian(x=xhatj, mu=muj)
+                Hxj = calc_pos_jacobian(x=xhatj.squeeze(), mu=muj.squeeze())
+                Hmj = calc_map_jacobian(x=xhatj.squeeze(), mu=muj.squeeze())
 
                 ### line 9
                 Qj = Q_t + Hmj @ Sigmaj @ Hmj.T
@@ -61,7 +65,7 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 muxj = Sigmaxj @ Hxj.T @ Qj_inv @ (z - zbarj) + xhatj
 
                 ### line 12
-                xt_feat[j] = np.random.multivariate_normal(mean=muxj, cov=Sigmaxj)[:, None]
+                xt_feat.append(np.random.multivariate_normal(mean=muxj.squeeze(), cov=Sigmaxj)[:, None])
 
                 ### line 13
                 zhat = particle.compute_expected_measurement(j)
@@ -91,10 +95,10 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 ### line 20
                 if j == c and j == Ntp:                                      # new feature
                     ### lines 21 - 26
-                    particle.x = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=alphas_motion, deltat=deltat)
+                    particle.x = x_rand
 
                     mux, muy = particle.compute_expected_landmark_pos(z)
-                    mu = np.array([[mux], [muy]])
+                    mu = np.array([[mux], [muy], [z[2].item()]])
 
                     Hmj = calc_map_jacobian(particle.pos(), mu.squeeze())
                     Hmj_inv = np.linalg.inv(Hmj)
@@ -102,7 +106,7 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
 
                     particle.insert_new_feature(mu, Sigma)
 
-                    w_particles[k] = p0
+                    w_particles[k] *= p0
 
                 elif j == c and j < Ntp:
                     mu_tp, Sigma_tp, _ = particle.access_feature(j)
@@ -119,7 +123,7 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
 
                     mu = mu_tp + K @ (z - zhat)
 
-                    Sigma = (np.eye(2) - K @ Hmj) @ Sigma_tp
+                    Sigma = (np.eye(3) - K @ Hmj) @ Sigma_tp
 
                     particle.update_map(j, mu, Sigma)
 
@@ -131,7 +135,7 @@ def FastSLAM_2(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 else:                                                           # all other features
                     # check if into the perception range
                     # line 28
-                    dist = np.linalg.norm(particle.mu_features[j] - particle.x[:2])
+                    dist = np.linalg.norm(particle.mu_features[j][:2] - particle.x[:2])
                     rel_bearing = relative_bearing(observer_angle=particle.x[2],
                                                    target_angle=arctan2(particle.mu_features[j][0] - particle.x[0],
                                                                         particle.mu_features[j][1] - particle.x[1]))

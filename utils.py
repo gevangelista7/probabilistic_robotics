@@ -185,7 +185,8 @@ class SLAMParticle:
         deltax, deltay, q = calc_deltas(self.x[:2], muk)
         zhat = np.array([[q ** .5],
                          [relative_bearing(observer_angle=self.x[2],
-                                           target_angle=arctan2(deltay, deltax)).item()]])
+                                           target_angle=arctan2(deltay, deltax)).item()],
+                         [muk[2].item()]])
 
         return zhat
 
@@ -331,8 +332,9 @@ def calc_map_jacobian(x, mu):
     deltax, deltay, q = calc_deltas(x, mu)
 
     sq = sqrt(q)
-    Haux_map = np.array([[deltax/sq, deltay/sq],
-                         [-deltay/q, deltax/q]])
+    Haux_map = np.array([[deltax/sq, deltay/sq, 0],
+                         [-deltay/q, deltax/q,  0],
+                         [0,         0,         1]])
 
     return Haux_map
 
@@ -341,8 +343,9 @@ def calc_pos_jacobian(x, mu):
     deltax, deltay, q = calc_deltas(x, mu)
 
     sq = sqrt(q)
-    Haux_pos = np.array([[-sq * deltax, -sq * deltay],
-                         [deltay, -deltax]]) / q
+    Haux_pos = np.array([[-deltax/sq, -deltay/sq, 0],
+                         [deltay/q,   -deltax/q, -1],
+                         [0,          0,          0]])
 
     return Haux_pos
 

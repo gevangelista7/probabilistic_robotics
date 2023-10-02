@@ -42,8 +42,8 @@ camera_range = 7        # meters for proper recognize
 
 # == CONTROL PANEL == #
 
-algo_name = 'FastSLAM_1'
-# algo_name = 'FastSLAM_2'
+# algo_name = 'FastSLAM_1'
+algo_name = 'FastSLAM_2'
 xt0 = np.array([[2], [1], [pi / 2]])
 
 ut_seq = np.array(
@@ -52,7 +52,10 @@ ut_seq = np.array(
     # subida                # direita         # descida            # esquerda                       # subida
 
 n_particles = 10
+
 percep_sigmas = (0.3, 0.1, 0.1)
+R = np.eye(3)/100
+
 motion_alphas = np.array((5, 1, 0.01, 0.01, 0.01, 0.01))*1e-3
 p0 = 1e-1
 
@@ -83,14 +86,14 @@ if __name__ == "__main__":
             Y, w = FastSLAM_1(Y=Y, u_t=ut, z_t=fiti,
                               p0=p0, alphas_motion=motion_alphas, deltat=1,
                               camera_range=camera_range, camera_fov=camera_fov,
-                              sigmas_percep=percep_sigmas[:2])
+                              sigmas_percep=percep_sigmas)
 
         elif algo_name == 'FastSLAM_2':
 
             Y, w = FastSLAM_2(Y=Y, u_t=ut, z_t=fiti,
                               p0=p0, alphas_motion=motion_alphas, deltat=1,
                               camera_range=camera_range, camera_fov=camera_fov,
-                              sigmas_percep=percep_sigmas[:2])
+                              sigmas_percep=percep_sigmas, R=R)
 
         else: raise 'algo_name err'
 

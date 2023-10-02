@@ -23,8 +23,9 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
 
         dubious_feat = set()
         for z_idx, z in enumerate(z_t.T):                       # iter over readings
-            s = z[2]
-            z = z[:2][:, None]                                  # ignore s and make vertical again
+            # s = z[2]
+            # z = z[:2][:, None]                                  # ignore s and make vertical again
+            z = z[:, None]
 
             Qinv_cache = []
 
@@ -66,7 +67,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 if j == c and j == Ntp:                                      # new feature
                     # line 17
                     mux, muy = particle.compute_expected_landmark_pos(z)
-                    mu = np.array([[mux], [muy]])
+                    mu = np.array([[mux], [muy], [z[2].item()]])
 
                     # line 18
                     Hj = calc_map_jacobian(particle.pos(), mu.squeeze())
@@ -92,7 +93,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                     mu = mu + K @ (z - zhat)
 
                     # line 23
-                    Sigma = (np.eye(2) - K @ Hj) @ Sigma
+                    Sigma = (np.eye(3) - K @ Hj) @ Sigma
 
                     # update (increment into the particle function
                     particle.update_map(j, mu, Sigma)
@@ -100,7 +101,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                 else:                                                           # all other features
                     # check if into the perception range
                     # line 28
-                    dist = np.linalg.norm(particle.mu_features[j] - particle.x[:2])
+                    dist = np.linalg.norm(particle.mu_features[j][:2] - particle.x[:2])
                     rel_bearing = relative_bearing(observer_angle=particle.x[2],
                                                    target_angle=arctan2(particle.mu_features[j][0] - particle.x[0],
                                                                         particle.mu_features[j][1] - particle.x[1]))
