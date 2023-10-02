@@ -1,5 +1,7 @@
 import numpy as np
 from numpy import pi
+
+from FastSLAM_2 import FastSLAM_2
 from utils import Map, clear_directory, get_random_samples, init_SLAM_population
 from motion_model import sample_model_velocity
 from plot_utils import plot_FastSLAM_scene, make_movie
@@ -83,14 +85,22 @@ if __name__ == "__main__":
                               camera_range=camera_range, camera_fov=camera_fov,
                               sigmas_percep=percep_sigmas[:2])
 
-            if len(citi) > 0:
-                ldmks_string = f'{len(citi)} ldmks detected!'
-            else:
-                ldmks_string = 'No Ldmks detected...'
+        elif algo_name == 'FastSLAM_2':
 
-            N_mean = sum([p.N for p in Y])/len(Y)
-            title = f"Update i={i}, N={N_mean}, {ldmks_string}"
+            Y, w = FastSLAM_2(Y=Y, u_t=ut, z_t=fiti,
+                              p0=p0, alphas_motion=motion_alphas, deltat=1,
+                              camera_range=camera_range, camera_fov=camera_fov,
+                              sigmas_percep=percep_sigmas[:2])
+
         else: raise 'algo_name err'
+
+        if len(citi) > 0:
+            ldmks_string = f'{len(citi)} ldmks detected!'
+        else:
+            ldmks_string = 'No Ldmks detected...'
+
+        N_mean = sum([p.N for p in Y]) / len(Y)
+        title = f"Update i={i}, N={N_mean}, {ldmks_string}"
 
         plot_FastSLAM_scene(xt=xti, Y=Y, w=w, area_map=test_area_map, camera_fov=camera_fov,
                             camera_range=camera_range, title=title, save=True,
