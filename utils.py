@@ -168,6 +168,7 @@ class SLAMParticle:
     def update_map(self, j, mu, Sigma):
         self.mu_features[j] = mu
         self.Sigmas_features[j] = Sigma
+        self.counter_features[j] += 1
 
     def access_feature(self, j):
         mu = self.mu_features[j]

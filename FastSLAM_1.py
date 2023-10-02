@@ -22,6 +22,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
         # line 4
         particle.x = sample_model_velocity(x_tp=particle.x, u_t=u_t, alphas=alphas_motion, deltat=deltat)
 
+        dubious_feat = set()
         for z_idx, z in enumerate(z_t.T):                       # iter over readings
             s = z[2]
             z = z[:2][:, None]                                  # ignore s and make vertical again
@@ -72,7 +73,6 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
             Ntp = particle.N
             Nt = max(Ntp, c+1)
 
-            delete_list = []
             for j in range(Nt):
                 if j == c and j == Ntp:                                      # new feature
                     # line 17
@@ -86,7 +86,7 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
 
                     particle.insert_new_feature(mu, Sigma)
 
-                elif (j == c) and j <= (Ntp - 1):                           # observed feature
+                elif j == c and j < Ntp:                                    # update observed feature
                     mu, Sigma, _ = particle.access_feature(j)
                     zhat = particle.compute_expected_measurement(j)
 
@@ -109,24 +109,23 @@ def FastSLAM_1(Y, u_t, z_t, p0, alphas_motion, camera_range, camera_fov,
                     particle.update_map(j, mu, Sigma)
 
                 else:                                                           # all other features
-                    # does not necessary to update the feature
                     # check if into the perception range
                     # line 28
                     dist = np.linalg.norm(particle.mu_features[j] - particle.x[:2])
                     rel_bearing = relative_bearing(observer_angle=particle.x[2],
                                                    target_angle=arctan2(particle.mu_features[j][0] - particle.x[0],
                                                                         particle.mu_features[j][1] - particle.x[1]))
+                    if dist < camera_range and abs(rel_bearing) < camera_fov/2:
+                        dubious_feat.add(j)
 
-                    if dist < camera_range and abs(rel_bearing) < camera_fov:
-                        # line 31
-                        particle.counter_features[j] -= 1
+        dubious_feat = list(dubious_feat)
+        dubious_feat.sort()
+        dubious_feat.reverse()
+        for j in dubious_feat:
+            particle.counter_features[j] -= 1
 
-                        # lines 32, and 33
-                        if particle.counter_features[j] < 0:
-                            delete_list.append(j)
-
-            delete_list.reverse()
-            for j in delete_list:
+            # lines 32, and 33
+            if particle.counter_features[j] < 0:
                 particle.delete_feature(j)
 
     # particles likelihoods considering all readings

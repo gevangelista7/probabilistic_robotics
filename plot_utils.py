@@ -231,6 +231,11 @@ def plot_FastSLAM_scene(xt, Y, w, area_map, camera_fov, camera_range, title, sav
         #     mu, Sigma, _ = particle.access_feature(i)
         #     pats += get_mahalanobis_level_pat(mean=(mu[0], mu[1]), S=Sigma, colors=['blue'], zorder=3)
 
+    worst_particle = Y[np.argmin(w)]
+    for i in range(worst_particle.N):
+        mu, Sigma, _ = worst_particle.access_feature(i)
+        pats += get_mahalanobis_level_pat(mean=(mu[0], mu[1]), S=Sigma, colors=['cyan'], zorder=3)
+
     best_particle = Y[np.argmax(w)]
     for i in range(best_particle.N):
         mu, Sigma, _ = best_particle.access_feature(i)

@@ -52,7 +52,7 @@ ut_seq = np.array(
 n_particles = 10
 percep_sigmas = (0.3, 0.1, 0.1)
 motion_alphas = np.array((5, 1, 0.01, 0.01, 0.01, 0.01))*1e-3
-p0 = 5e-1
+p0 = 1e-1
 
 # good values for visualization:
 # percep_sigmas = (0.3, 0.01, 0.1)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                 ldmks_string = 'No Ldmks detected...'
 
             N_mean = sum([p.N for p in Y])/len(Y)
-            title = f"Uncertainty update i={i}, N={N_mean}, {ldmks_string}"
+            title = f"Update i={i}, N={N_mean}, {ldmks_string}"
         else: raise 'algo_name err'
 
         plot_FastSLAM_scene(xt=xti, Y=Y, w=w, area_map=test_area_map, camera_fov=camera_fov,
@@ -97,6 +97,5 @@ if __name__ == "__main__":
                             figname=images_dir + 'iter_{0:03d}'.format(i))
 
         print(f'Fim da iteração {i} de {len(ut_seq.T)-1}')
-
 
     make_movie(images_dir, f'./movies/{algo_name}_movie.gif')
