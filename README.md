@@ -17,9 +17,9 @@ The proposed algorithms are from the following chapters:
 <img src="movies/augMCL_movie.gif" alt="Alt Text" width="300">
 
 - Chapter 10: SLAM
-  - EKF SLAM known Correspondences
+  - EKF SLAM known correspondences
    
-  <img src="movies/EKFSLAM_kc_movie.gif" alt="Alt Text" width="300">
+  <img src="movies/EKF_SLAM_kc_movie.gif" alt="Alt Text" width="300">
 
   - EKF SLAM
    
