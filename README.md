@@ -17,10 +17,20 @@ The proposed algorithms are from the following chapters:
 <img src="movies/augMCL_movie.gif" alt="Alt Text" width="300">
 
 - Chapter 10: SLAM
+  - EKF SLAM known Correspondences
+   
+  <img src="movies/EKFSLAM_kc_movie.gif" alt="Alt Text" width="300">
 
-<img src="movies/EKF_SLAM_movie.gif" alt="Alt Text" width="300">
+  - EKF SLAM
+   
+  <img src="movies/EKF_SLAM_movie.gif" alt="Alt Text" width="300">
 
 - Chapter 13: 
-  - FastSLAM 1
-<img src="movies/FastSLAM_1_movie.gif" alt="Alt Text" width="300">
+  - FastSLAM 1.0
+
+  <img src="movies/FastSLAM_1_movie.gif" alt="Alt Text" width="300">
+  
+  - FastSLAM 2.0
+   
+  <img src="movies/FastSLAM_2_movie.gif" alt="Alt Text" width="300">
 
